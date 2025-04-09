@@ -1,3 +1,4 @@
+#1
 TOPNAME = top
 
 INC_PATH ?=
