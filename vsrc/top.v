@@ -3,7 +3,7 @@ module top (
     input  wire        rst,          // 复位信号
     output wire [31:0] pc,           // 程序计数器
     output wire [31:0] instruction,  // 当前指令
-    output wire        overflow      // ALU 溢出信号
+    output wire        overflow     // ALU 溢出信号
 );
 
     // 内部信号
@@ -11,7 +11,7 @@ module top (
     wire [31:0] rs1_data, rs2_data; // 寄存器数据
     wire        reg_write;          // 寄存器写使能
     wire        alu_src;            // ALU 操作数选择
-    wire [2:0]  alu_ctrl;           // ALU 控制信号
+    wire [3:0]  alu_ctrl;           // ALU 控制信号
     wire [31:0] alu_result;         // ALU 计算结果
     wire [31:0] imm;                // 符号扩展后的立即数
     wire        wb_src;             // 写回数据选择 (0: ALU结果, 1: 立即数)
@@ -93,4 +93,5 @@ module top (
     	.instruction(instruction),
     	.overflow(overflow)
     );
+
 endmodule

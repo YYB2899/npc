@@ -11,6 +11,8 @@ BIN = $(BUILD_DIR)/$(TOPNAME)
 DUMMY_ELF = $(BUILD_DIR)/dummy-riscv32e-npc.elf
 CXXFLAGS += -g -ggdb3  # 添加调试信息
 VERILATOR_CFLAGS += --debug
+# DiffTest配置
+DIFFTEST_REF ?= $(NEMU_HOME)/build/riscv32-nemu-interpreter-so
 # Capstone 相关配置
 CAPSTONE_DIR = /home/yyb/ysyx-workbench/nemu/tools/capstone/repo
 CAPSTONE_LIB = $(CAPSTONE_DIR)/libcapstone.a
