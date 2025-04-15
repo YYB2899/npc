@@ -4,8 +4,7 @@ module alu(
     input wire [3:0] sub,              
     output reg [31:0] sum,      
     output reg overflow,
-    input wire alu_enable, //enable=1正常执行ALU操作
-    input wire is_jalr
+    input wire alu_enable //enable=1正常执行ALU操作
 );      
       
     reg [32:0] temp_sum;      
@@ -80,10 +79,10 @@ always @(*) begin
 	end  
 	4'b1000: begin  // SLL/SLLI（逻辑左移）
             sum = r1 << r2[4:0];          // 实际位移结果
-            temp_sum = 33'b0;             // 未使用（保持清零）
-            r2_complement = 32'b0;        // 未使用
-            overflow = 1'b0;              // 位移无溢出
-            s = 32'b0;                    // 未使用
+            temp_sum = 33'b0;      
+            r2_complement = 32'b0;     
+            overflow = 1'b0;   
+            s = 32'b0;                
         end
 	4'b1001: begin  // SRL/SRLI（逻辑右移）
             sum = r1 >> r2[4:0];          // 高位补0
@@ -99,7 +98,13 @@ always @(*) begin
             overflow = 1'b0;
             s = 32'b0;
         end
-        4'b1011: begin sum = 32'b0;temp_sum = 33'b0;r2_complement = 32'b0;overflow = 1'b0;s = 32'b0;end
+        4'b1011: begin 
+            sum = (r1 == r2) ? 32'b1 : 32'b0;  // 相等为1，不等为0
+    	    temp_sum = 33'b0;
+            r2_complement = 32'b0;
+            overflow = 1'b0;
+            s = 32'b0;
+        end
         4'b1100: begin sum = 32'b0;temp_sum = 33'b0;r2_complement = 32'b0;overflow = 1'b0;s = 32'b0;end
         4'b1101: begin sum = 32'b0;temp_sum = 33'b0;r2_complement = 32'b0;overflow = 1'b0;s = 32'b0;end
         4'b1110: begin sum = 32'b0;temp_sum = 33'b0;r2_complement = 32'b0;overflow = 1'b0;s = 32'b0;end

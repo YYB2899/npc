@@ -56,7 +56,9 @@ function automatic is_illegal_instruction;
             7'b0110011, // ADD,SUB,AND,OR,XOR,STL,STLU
             7'b0100011, // SW
             7'b0001111, // FENCE
-            7'b1110011: // ECALL/EBREAK
+            7'b1110011, // ECALL/EBREAK
+            7'b0000011,
+            7'b1100011:
                 is_illegal_instruction = 0;
             default:
                 is_illegal_instruction = 1; // 未知操作码

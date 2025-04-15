@@ -6,6 +6,8 @@
 #include <string>
 #include <cstring>
 #include <vector>
+#include <cstdint>
+#include <fstream>
 #include <map>
 #include <svdpi.h>
 #include "/home/yyb/ysyx-workbench/nemu/tools/capstone/repo/include/capstone/capstone.h"
@@ -23,6 +25,7 @@ bool debug_mode = false;
 std::map<uint32_t, uint32_t> mem_access_log;
 static csh handle;
 static bool capstone_initialized = false;
+static std::map<uint32_t, uint32_t> memory;
 
 // 函数声明
 void sim_init(int argc, char** argv);
@@ -34,6 +37,32 @@ void run_to_completion();
 void cmd_x(const std::string& args);
 void log_memory_access();
  //DPI相关函数
+extern "C" int pmem_read(int raddr) {
+    uint32_t aligned_addr = raddr & ~0x3u;
+    return memory[aligned_addr];
+}
+
+extern "C" void pmem_write(int waddr, int wdata, char wmask) {
+    uint32_t aligned_addr = waddr & ~0x3u;
+    memory[aligned_addr] = wdata;
+    // 完整写入（SW指令）
+    if (wmask == 0xffffffd4) {
+        memory[aligned_addr] = wdata;
+        return;
+    }
+    // 部分写入（SB/SH指令）
+    uint32_t current = pmem_read(aligned_addr);
+    uint32_t new_data = current;
+    
+    for (int i = 0; i < 4; i++) {
+        if (wmask & (1 << i)) {
+            new_data = (new_data & ~(0xFF << (i*8))) | 
+                       (wdata & (0xFF << (i*8)));
+        }
+    }
+    memory[aligned_addr] = new_data;
+}
+
 extern "C" void end_simulation() {
     printf("Simulation ended by ebreak instruction\n");
     if (contextp) contextp->gotFinish(true);
@@ -96,7 +125,6 @@ void cmd_x(const std::string& args) {
         printf("Usage: x [len] [addr] (e.g. 'x 4 0x80000000')\n");
         return;
     }
-
     try {
         // 提取长度和地址
         int len = std::stoi(trimmed_args.substr(0, space_pos));
@@ -104,26 +132,22 @@ void cmd_x(const std::string& args) {
             printf("Length must be positive\n");
             return;
         }
-
         // 提取地址部分并去除可能的前导空格
         std::string addr_str = trimmed_args.substr(space_pos + 1);
         addr_str.erase(0, addr_str.find_first_not_of(" \t\n\r"));
         uint32_t addr = std::stoul(addr_str, nullptr, 16);
-        printf("Scanning memory from 0x%08x, len=%d:\n", addr, len);
+        
+        printf("Memory contents from 0x%08x, length %d words:\n", addr, len);
         for (int i = 0; i < len; i++) {
             uint32_t curr_addr = addr + i * 4;
-            auto it = mem_access_log.find(curr_addr);
-            printf("0x%08x: 0x%08x %s\n", 
-                curr_addr,
-                it != mem_access_log.end() ? it->second : 0,
-                it != mem_access_log.end() ? "(accessed)" : "(failure)");
+            uint32_t value = pmem_read(curr_addr);  // 使用 pmem_read 读取内存
+            printf("0x%08x: 0x%08x\n", curr_addr, value);
         }
     } catch (const std::exception& e) {
         printf("Error: %s\n", e.what());
         printf("Usage: x [len] [addr] (e.g. 'x 4 0x80000000')\n");
     }
 }
-
 // 打印寄存器函数
 void cmd_p(const std::string& args) {
     try {
@@ -267,12 +291,12 @@ void sim_init(int argc, char** argv) {
     contextp->commandArgs(argc, argv);
     tfp = new VerilatedVcdC;
     top = new Vtop{contextp};
-    
+
     // 初始化波形跟踪
     contextp->traceEverOn(true);
     top->trace(tfp, 99);
     tfp->open("wave.vcd");
-
+	
     // 初始化 Capstone
     init_capstone();
 
